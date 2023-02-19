@@ -51,9 +51,14 @@ export class UserService {
 
       body.password = await this.bcryptService.hashPassword(body.password);
 
-      return await this._userRepository.save({
+      await this._userRepository.save({
         ...body,
       });
+
+      return {
+        success: true,
+        message: 'User created successfully',
+      };
     } catch (e) {
       if (e?.response?.error?.type) throw e;
 
@@ -67,10 +72,15 @@ export class UserService {
   }
 
   async updateUser(userId: number, body: UpdateUserDto) {
-    return await this._userRepository.save({
+    await this._userRepository.save({
       id: userId,
       ...body,
     });
+
+    return {
+      success: true,
+      message: 'User updated successfully',
+    };
   }
 
   async deleteUser(userId: number) {
