@@ -8,7 +8,7 @@ export class UserEntity {
   id: number;
 
   @Column()
-  bame: string;
+  name: string;
 
   @Column({
     unique: true
