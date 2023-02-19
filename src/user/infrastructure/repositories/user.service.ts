@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { UserEntity } from "src/entities/user.entity";
+import { CreateUserDto } from "src/user/domain/dto/create-user.dto";
 import { UserRepository } from "./user.repository";
 
 @Injectable()
@@ -19,4 +20,9 @@ export class UserService{
     })
    }
 
+   async createUser(body: CreateUserDto){
+    return await this._userRepository.save({
+        ...body
+    })
+   }
 }
