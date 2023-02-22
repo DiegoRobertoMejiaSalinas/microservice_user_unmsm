@@ -1,11 +1,26 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
+import {
+  Ctx,
+  MessagePattern,
+  Payload,
+  RmqContext,
+} from '@nestjs/microservices';
 import { ApiTags } from '@nestjs/swagger';
+import { UserEntity } from 'src/entities/user.entity';
 import { CreateUserDto } from '../domain/dto/create-user.dto';
 import { UpdateUserDto } from '../domain/dto/update-user.dto';
 import { UserService } from './user.service';
 
 @ApiTags('User')
-@Controller()
+@Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -32,5 +47,19 @@ export class UserController {
   @Delete(':id')
   async deleteUser(@Param('id') userId: number) {
     return await this.userService.deleteUser(userId);
+  }
+
+  @MessagePattern('get_user_by_id')
+  async findUserByIdPattern(
+    @Payload() data: number,
+  ) {
+    return this.findUserById(data);
+  }
+
+  @MessagePattern('users_by_array_id')
+  public async getUsersByIdArray(
+    @Payload() data: number[],
+  ): Promise<UserEntity[]> {
+    return await this.userService.listUsersByIds(data);
   }
 }

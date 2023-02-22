@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -9,6 +10,9 @@ import { CreateUserDto } from 'src/user/domain/dto/create-user.dto';
 import { UpdateUserDto } from 'src/user/domain/dto/update-user.dto';
 import { UserRepository } from './repositories/user.repository';
 import { BcryptService } from 'src/utils/bcrypt';
+import { In } from 'typeorm';
+import { ClientProxy } from '@nestjs/microservices';
+import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class UserService {
@@ -16,18 +20,39 @@ export class UserService {
     @InjectRepository(UserEntity)
     private readonly _userRepository: UserRepository,
     private readonly bcryptService: BcryptService,
-  ) {}
+    @Inject('COURSE_SERVICE') private readonly courseClient: ClientProxy,
+  ) {
+    this.courseClient.connect();
+  }
+
+  async listUsersByIds(usersIdArray: number[]) {
+    return await this._userRepository.find({
+      where: {
+        id: In(usersIdArray),
+      },
+    });
+  }
 
   async listAllUsers() {
     return await this._userRepository.find();
   }
 
   async findUserById(userId: number) {
-    return await this._userRepository.findOne({
+    const foundUser = await this._userRepository.findOne({
       where: {
         id: userId,
       },
     });
+
+    if (!foundUser) return null;
+
+    const enrolledCourses = await lastValueFrom(
+      this.courseClient.send('courses_by_user_id', foundUser.id),
+    );
+
+    foundUser.courses = enrolledCourses;
+
+    return foundUser;
   }
 
   async createUser(body: CreateUserDto) {
