@@ -1,6 +1,7 @@
 version: '3.7'
 services:
   user_backend:
+    user: 'root:root'
     container_name: user_backend_unmsm
     build:
       context: .
@@ -17,6 +18,7 @@ services:
           - user_backend_network
 
   user_mysql_db:
+    user: 'root:root'
     container_name: user_db_unmsm
     image: mysql:5.7
     env_file:
