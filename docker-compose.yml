@@ -1,0 +1,36 @@
+version: '3.7'
+services:
+  user_backend:
+    container_name: user_backend_unmsm
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - user_mysql_db
+    ports:
+      - 3000:3000
+    env_file:
+      - .env
+    networks:
+      microservices_network:
+        aliases:
+          - user_backend_network
+
+  user_mysql_db:
+    container_name: user_db_unmsm
+    image: mysql:5.7
+    env_file:
+      - .env
+    ports:
+      - 3306:3306
+    volumes:
+      - ./.docker-conf/user-mysql/data/:/var/lib/mysql
+    networks:
+      microservices_network:
+        aliases:
+          - user_db_network
+
+networks:
+  microservices_network:
+    name: unmsm-microservices-network
+    driver: bridge

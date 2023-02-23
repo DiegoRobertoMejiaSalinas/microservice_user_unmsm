@@ -3,6 +3,7 @@ import {
   Inject,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from 'src/entities/user.entity';
@@ -12,7 +13,7 @@ import { UserRepository } from './repositories/user.repository';
 import { BcryptService } from 'src/utils/bcrypt';
 import { In } from 'typeorm';
 import { ClientProxy } from '@nestjs/microservices';
-import { lastValueFrom } from 'rxjs';
+import { lastValueFrom, NotFoundError } from 'rxjs';
 
 @Injectable()
 export class UserService {
@@ -109,8 +110,50 @@ export class UserService {
   }
 
   async deleteUser(userId: number) {
-    return await this._userRepository.delete({
-      id: userId,
-    });
+    try {
+      const foundUser = await this._userRepository.findOne({
+        where: { id: userId },
+      });
+
+      if (!foundUser) {
+        throw new NotFoundException({
+          error: {
+            type: 'not_found_user',
+            message: 'El usuario que intenta eliminar no existe',
+          },
+        });
+      }
+
+      const deletedEnrollments = await lastValueFrom(
+        this.courseClient.send('delete_enrolled_user_by_id', foundUser.id),
+      );
+
+      if (!deletedEnrollments) {
+        throw new InternalServerErrorException({
+          error: {
+            type: 'error_deleting_user',
+            message: 'Ocurrio un error al eliminar el usuario',
+          },
+        });
+      }
+
+      await this._userRepository.delete({
+        id: userId,
+      });
+
+      return {
+        success: true,
+        message: 'Se eliminó el usuario con exito',
+      };
+    } catch (e) {
+      if (e?.response?.error?.type) throw e;
+
+      throw new InternalServerErrorException({
+        error: {
+          type: 'error_deleting_user',
+          message: 'Ocurrio un error al eliminar el usuario',
+        },
+      });
+    }
   }
 }
